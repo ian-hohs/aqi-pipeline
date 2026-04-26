@@ -189,4 +189,4 @@ aqi-pipeline/
 
 ## Author
 
-Ian Hohsfield — built as part of a learning portfolio targeting data engineering roles.
+Ian Hohsfield
