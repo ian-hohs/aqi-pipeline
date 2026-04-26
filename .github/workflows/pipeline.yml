@@ -1,0 +1,81 @@
+# ──────────────────────────────────────────────────────────────────────────────
+#  AQI Pipeline — GitHub Actions Workflow
+# ──────────────────────────────────────────────────────────────────────────────
+#  This file tells GitHub: "Run this Python pipeline every day automatically."
+#
+#  WHAT IT DOES:
+#  -------------
+#  1. Triggers on a schedule (every day at 13:00 UTC)
+#  2. Spins up a fresh Ubuntu virtual machine
+#  3. Installs Python and our dependencies
+#  4. Runs the pipeline with the API key from GitHub Secrets
+#  5. Commits the updated database back to the repo
+#  6. Reports success/failure — emails you if anything broke
+#
+#  WHY GITHUB ACTIONS INSTEAD OF A REAL CRON SERVER?
+#  -------------------------------------------------
+#  For a portfolio project, GitHub Actions is perfect:
+#    - Free for public repos
+#    - No server to maintain
+#    - Logs are visible to anyone reviewing your code
+#    - Failures are visible right on the repo's homepage
+#
+#  In production, you'd use Apache Airflow, Dagster, or a managed service.
+#  But the concept is identical: a scheduler runs your pipeline on a cadence.
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: AQI Pipeline
+
+on:
+  # Run every day at 13:00 UTC (6am Pacific). Cron syntax: min hour day month weekday
+  schedule:
+    - cron: '0 13 * * *'
+
+  # Also allow manual triggering from the Actions tab in the GitHub UI.
+  # Useful for testing or backfilling missed days.
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    # Permissions needed to commit the updated DB back to the repo
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests
+        # Run tests BEFORE the pipeline. If transformation logic is broken,
+        # we don't want to corrupt the production database.
+        run: pytest tests/ -v
+
+      - name: Run pipeline
+        env:
+          # Pull the API key from GitHub Secrets, never hardcoded.
+          # Set this in: Settings → Secrets and variables → Actions
+          AIRNOW_API_KEY: ${{ secrets.AIRNOW_API_KEY }}
+        run: python -m src.pipeline
+
+      - name: Commit updated database
+        # Commit the modified .db file back to the repo so we have history.
+        # || true prevents failure when there's nothing new to commit.
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/aqi.db
+          git commit -m "Daily pipeline run $(date -u +'%Y-%m-%d')" || echo "Nothing to commit"
+          git push
