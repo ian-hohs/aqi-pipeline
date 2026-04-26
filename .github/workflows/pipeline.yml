@@ -42,6 +42,9 @@ jobs:
     # Permissions needed to commit the updated DB back to the repo
     permissions:
       contents: write
+    
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout code
