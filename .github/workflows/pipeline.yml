@@ -43,9 +43,6 @@ jobs:
     permissions:
       contents: write
 
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -71,6 +68,9 @@ jobs:
           # Pull the API key from GitHub Secrets, never hardcoded.
           # Set this in: Settings → Secrets and variables → Actions
           AIRNOW_API_KEY: ${{ secrets.AIRNOW_API_KEY }}
+          # Google Sheets credentials and target spreadsheet
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: python -m src.pipeline
 
       - name: Commit updated database

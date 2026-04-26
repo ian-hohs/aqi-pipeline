@@ -27,7 +27,7 @@ import logging
 import sys
 import time
 
-from src import config, ingest, transform, load, alerts
+from src import config, ingest, transform, load, alerts, sheets_sync
 
 
 def setup_logging():
@@ -84,6 +84,16 @@ def run() -> int:
 
         # ─── Stage 4: Alert detection ───────────────────────────────────
         alerts.detect_and_record_alerts()
+
+        # ─── Stage 5: Google Sheets sync ────────────────────────────────
+        # Wrapped in its own try/except so that a sheets failure doesn't
+        # fail the whole pipeline. The DB is the source of truth — if we
+        # fail to update the spreadsheet, the data still lives in SQLite
+        # and the next run can re-sync it.
+        try:
+            sheets_sync.sync_to_sheets()
+        except Exception as e:
+            log.warning(f"Sheets sync failed (non-fatal): {e}")
 
         elapsed = time.time() - start
         log.info(f"Pipeline complete in {elapsed:.1f}s")
