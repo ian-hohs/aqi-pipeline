@@ -11,7 +11,7 @@ The transform module is where most bugs hide in data pipelines, because:
   - Bugs here corrupt the database silently
 
 Unit tests let you encode the expected behavior and catch regressions
-the second they happen. Every Ripple engineer writes tests like these.
+the second they happen. Every engineer writes tests like these.
 
 WHY PYTEST INSTEAD OF UNITTEST?
 -------------------------------
